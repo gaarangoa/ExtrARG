@@ -5,7 +5,7 @@ setup(
     version='0.1',
     py_modules=['extrarg'],
     install_requires=[
-        'Click=6.7,
+        'Click=6.7',
         'numpy=1.14.3',
         'pandas=0.22.0',
         'xlrd',
