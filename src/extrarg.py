@@ -106,8 +106,8 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option('--output-file', help='output file where to store the results')
 @click.option('--disc', default=50, help='top N discriminative ARGs (default 50)')
 @click.option('--min-reads', default=1, help='minimum number of reads on each ARG (default 1)')
-@click.option('--optimize', default=False, help='minimum number of reads on each ARG (default 1)')
-def process(input_file='', output_file='', disc='', min_reads='', optimize=False):
+# @click.option('--optimize', default=False, help='minimum number of reads on each ARG (default 1)')
+def process(input_file='', output_file='', disc='', min_reads=''):
     """
     This program subtract the top N (50 default) discriminatory antibiotic resistance genes from a set of metagenomics samples.
     Hyperparameters of the supervised machine learning algorithm (extra tree classifier) are automatically tuned using the bayesian optimization.
