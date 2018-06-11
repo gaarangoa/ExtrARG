@@ -2,7 +2,7 @@
 To instal ExtraARGs algorighm just follow this instructions:
 
         git clone
-        cd ./extrarg/
+        cd ./ExtrARG/src/
         pip install .
 
 Check the instalation by typing:
