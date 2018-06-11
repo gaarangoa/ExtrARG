@@ -1,4 +1,0 @@
-Click
-numpy
-pandas
-sklearn
