@@ -7,6 +7,7 @@ setup(
     install_requires=[
         'Click==6.7',
         'pandas==0.22.0',
+        'openpyxl==2.5.4',
         'numpy==1.14.3',
         'xlrd>=>2011k',
         'sklearn<=0.19.1',
