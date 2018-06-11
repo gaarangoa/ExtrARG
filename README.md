@@ -1,7 +1,7 @@
 ## Instalation
 To instal ExtraARGs algorighm just follow this instructions:
 
-        git clone
+        git clone https://github.com/gaarangoa/ExtrARG.git
         cd ./ExtrARG/src/
         pip install .
 
