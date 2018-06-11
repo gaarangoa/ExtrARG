@@ -5,11 +5,11 @@ setup(
     version='0.1',
     py_modules=['extrarg'],
     install_requires=[
-        'Click',
-        'numpy',
-        'pandas',
-        'xlrd',
-        'sklearn',
+        'Click==6.7',
+        'pandas==0.22.0',
+        'numpy==1.14.3',
+        'xlrd>=>2011k',
+        'sklearn<=0.19.1',
         'bayesian-optimization'
     ],
     entry_points='''
