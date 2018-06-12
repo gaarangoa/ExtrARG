@@ -8,12 +8,14 @@ import click
 
 
 class ExtraARG():
-    def __init__(self, input_file, output_file, disc, min_reads, epochs):
+    def __init__(self, input_file, output_file, disc, min_reads, epochs, max_importance, min_importance):
         self.input_file = input_file
         self.output_file = output_file
         self.disc = disc
         self.epochs = epochs
         self.min_reads = min_reads
+        self.max_importance = max_importance
+        self.min_importance = min_importance
         self.X = []
         self.y = []
         self.z = []
@@ -45,15 +47,29 @@ class ExtraARG():
         self.y = Map.Label
         self.X = Raw_data2
 
-    def etc_ccv(self, n_estimators, max_features):
+    def etc_ccv(self, n_estimators, max_features, top_args):
+        _transition_model = ETC(n_estimators=int(n_estimators),
+                                max_features=min(max_features, 0.999),
+                                random_state=2
+                                )
+        _transition_model.fit(self.X, self.y)
+        _transition_model_select = SelectFromModel(
+            _transition_model, prefit=True, threshold=top_args
+        )
+        _transition_model_x = _transition_model_select.transform(self.X)
+
+        # In this case there are not features to select, therefore, return 0 as accuracy.
+        if _transition_model_x.shape[1] == 0:
+            return 0
+
         val = cross_val_score(
             ETC(n_estimators=int(n_estimators),
-                # min_samples_split=int(min_samples_split),
                 max_features=min(max_features, 0.999),
                 random_state=2
                 ),
-            self.X, self.y, 'accuracy', cv=2
+            _transition_model_x, self.y, 'accuracy', cv=2
         ).mean()
+
         return val
 
     def optimize(self):
@@ -61,9 +77,9 @@ class ExtraARG():
         self.etc_0 = BayesianOptimization(
             self.etc_ccv,
             {
-                'n_estimators': (10, 1000),
-                # 'min_samples_split': (2, 25),
-                'max_features': (0.1, 0.999)
+                'n_estimators': (100, 1000),
+                'max_features': (0.1, 0.5),
+                'top_args': (self.min_importance, self.max_importance)
             }
         )
         self.etc_0.maximize(n_iter=self.epochs, **self.gp_params)
@@ -72,38 +88,56 @@ class ExtraARG():
         self.forest = ETC(
             n_estimators=int(
                 self.etc_0.res['max']['max_params']['n_estimators']),
-            # min_samples_split=int(
-            #     self.etc_0.res['max']['max_params']['min_samples_split']),
             max_features=min(
                 self.etc_0.res['max']['max_params']['max_features'], 0.999),
             random_state=0
         )
         self.forest.fit(self.X, self.y)
+        self._selected_features_model = SelectFromModel(
+            self.forest, prefit=True, threshold=self.etc_0.res['max']['max_params']['top_args']
+        )
+
+        self.x_t_selected = self._selected_features_model.transform(self.X)
+        # self.forest.fit(self.x_t_selected, self.y)
+
+        self.x_selected = pd.DataFrame(
+            data=self.x_t_selected,
+            index=self.X.index,
+            columns=self.X.columns[self._selected_features_model.get_support()]
+        )
+
+        self.importances = pd.DataFrame({
+            'Gene': self.x_selected.columns,
+            'importance': self.forest.feature_importances_[self._selected_features_model.get_support()]
+        })
 
     def discriminate(self):
 
-        self.importances = pd.DataFrame({'feature': self.X.columns, 'importance': np.round(
-            self.forest.feature_importances_, 10)})
-        self.importances = self.importances.sort_values(
-            'importance', ascending=False).set_index('feature')
-        # print(importances)
-        # importances.plot.bar()
+        # self.importances = pd.DataFrame(
+        #     {
+        #         'feature': self.x_selected.columns,
+        #         'importance': np.round(self.forest.feature_importances_, 10)
+        #     }
+        # )
+        # self.importances = self.importances.sort_values(
+        #     'importance', ascending=False).set_index('feature')
 
         print('selecting discriminatory ARGs ...')
         # selecting number of ARGs based on the model
-        self.model = SelectFromModel(self.forest, prefit=True)
-        self.X_new = self.model.transform(self.X)
-        print("Samples - Features", self.X_new.shape)
-        self.list_Country_Wise = self.importances[0:len(self.X_new.T)]
+        # self.model = SelectFromModel(self.forest, prefit=True)
+        # self._reduced_x = self.model.transform(self.X)
+        # print("Samples - Features", self.X_new.shape)
 
         # selecting number of ARGs based on user defined number
-        self.z = self.importances.index[0:self.disc]
-        self.Y = self.X[self.z]
+        # self.z = self.importances.index
+        # self._reduced_x = self.x_selected[self.z]
+        # print("Selected ARGs: ", self._reduced_x.shape[1])
         print('saving into '+self.output_file+'.xlsx file ...')
         # writing in new excel file
         writer = pd.ExcelWriter(self.output_file+'.xlsx')
         self.X.to_excel(writer, 'cleaned_raw_input')
-        self.Y.to_excel(writer, 'discriminatory_args')
+        self.x_selected.to_excel(writer, 'discriminatory_args')
+        self.importances.to_excel(writer, 'ARGs_importance')
         writer.save()
 
 
@@ -116,8 +150,10 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option('--disc', default=50, help='top N discriminative ARGs (default 50)')
 @click.option('--min-reads', default=1, help='minimum number of reads on each ARG (default 1)')
 @click.option('--epochs', default=10, help='number of iterations the optimization algorithm run (default 10)')
+@click.option('--max-importance', default=0.01, help='maximum importance for search space (default 0.01)')
+@click.option('--min-importance', default=1e-5, help='minimum importance for search space (default 1e-6)')
 # @click.option('--optimize', default=False, help='minimum number of reads on each ARG (default 1)')
-def process(input_file='', output_file='', disc='', min_reads='', epochs=10):
+def process(input_file='', output_file='', disc='', min_reads='', epochs=10, max_importance=0.01, min_importance=1e-5):
     """
     This program subtract the top N (50 default) discriminatory antibiotic resistance genes from a set of metagenomics samples.
     Hyperparameters of the supervised machine learning algorithm (extra tree classifier) are automatically tuned using the bayesian optimization.
@@ -127,7 +163,8 @@ def process(input_file='', output_file='', disc='', min_reads='', epochs=10):
         print('\nUsage: extrarg --help\n')
         exit()
 
-    extra_arg = ExtraARG(input_file, output_file, disc, min_reads, epochs)
+    extra_arg = ExtraARG(input_file, output_file, disc,
+                         min_reads, epochs, max_importance, min_importance)
 
     print('loading input datasets ...')
     extra_arg.load_data()
