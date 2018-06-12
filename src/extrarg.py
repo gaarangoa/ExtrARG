@@ -11,7 +11,6 @@ class ExtraARG():
     def __init__(self, input_file, output_file, min_reads, epochs, max_importance, min_importance):
         self.input_file = input_file
         self.output_file = output_file
-        self.disc = disc
         self.epochs = epochs
         self.min_reads = min_reads
         self.max_importance = max_importance
@@ -112,26 +111,7 @@ class ExtraARG():
         })
 
     def discriminate(self):
-
-        # self.importances = pd.DataFrame(
-        #     {
-        #         'feature': self.x_selected.columns,
-        #         'importance': np.round(self.forest.feature_importances_, 10)
-        #     }
-        # )
-        # self.importances = self.importances.sort_values(
-        #     'importance', ascending=False).set_index('feature')
-
         print('selecting discriminatory ARGs ...')
-        # selecting number of ARGs based on the model
-        # self.model = SelectFromModel(self.forest, prefit=True)
-        # self._reduced_x = self.model.transform(self.X)
-        # print("Samples - Features", self.X_new.shape)
-
-        # selecting number of ARGs based on user defined number
-        # self.z = self.importances.index
-        # self._reduced_x = self.x_selected[self.z]
-        # print("Selected ARGs: ", self._reduced_x.shape[1])
         print('saving into '+self.output_file+'.xlsx file ...')
         # writing in new excel file
         writer = pd.ExcelWriter(self.output_file+'.xlsx')
