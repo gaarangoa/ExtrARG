@@ -8,7 +8,7 @@ import click
 
 
 class ExtraARG():
-    def __init__(self, input_file, output_file, disc, min_reads, epochs, max_importance, min_importance):
+    def __init__(self, input_file, output_file, min_reads, epochs, max_importance, min_importance):
         self.input_file = input_file
         self.output_file = output_file
         self.disc = disc
@@ -163,7 +163,7 @@ def process(input_file='', output_file='', min_reads='', epochs=10, max_importan
         print('\nUsage: extrarg --help\n')
         exit()
 
-    extra_arg = ExtraARG(input_file, output_file, disc,
+    extra_arg = ExtraARG(input_file, output_file,
                          min_reads, epochs, max_importance, min_importance)
 
     print('loading input datasets ...')
