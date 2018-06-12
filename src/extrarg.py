@@ -147,13 +147,13 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option('--input-file', default='', help='input excel file')
 @click.option('--output-file', help='output file where to store the results')
-@click.option('--disc', default=50, help='top N discriminative ARGs (default 50)')
+# @click.option('--disc', default=50, help='top N discriminative ARGs (default 50)')
 @click.option('--min-reads', default=1, help='minimum number of reads on each ARG (default 1)')
-@click.option('--epochs', default=10, help='number of iterations the optimization algorithm run (default 10)')
+@click.option('--epochs', default=20, help='number of iterations the optimization algorithm run (default 10)')
 @click.option('--max-importance', default=0.01, help='maximum importance for search space (default 0.01)')
 @click.option('--min-importance', default=1e-5, help='minimum importance for search space (default 1e-6)')
 # @click.option('--optimize', default=False, help='minimum number of reads on each ARG (default 1)')
-def process(input_file='', output_file='', disc='', min_reads='', epochs=10, max_importance=0.01, min_importance=1e-5):
+def process(input_file='', output_file='', min_reads='', epochs=10, max_importance=0.01, min_importance=1e-5):
     """
     This program subtract the top N (50 default) discriminatory antibiotic resistance genes from a set of metagenomics samples.
     Hyperparameters of the supervised machine learning algorithm (extra tree classifier) are automatically tuned using the bayesian optimization.
