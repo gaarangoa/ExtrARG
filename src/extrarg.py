@@ -46,11 +46,8 @@ class ExtraARG():
         self.y = Map.Label
         self.X = Raw_data2
 
-    def etc_ccv(self, n_estimators, max_features, top_args):
-        _transition_model = ETC(n_estimators=int(n_estimators),
-                                max_features=min(max_features, 0.999),
-                                random_state=2
-                                )
+    def etc_ccv(self, n_estimators, top_args):
+        _transition_model = ETC(n_estimators=int(n_estimators), random_state=0)
         _transition_model.fit(self.X, self.y)
         _transition_model_select = SelectFromModel(
             _transition_model, prefit=True, threshold=top_args
@@ -62,12 +59,12 @@ class ExtraARG():
             return 0
 
         val = cross_val_score(
-            ETC(n_estimators=int(n_estimators),
-                max_features=min(max_features, 0.999),
-                random_state=2
-                ),
+            ETC(n_estimators=int(n_estimators), random_state=0),
             _transition_model_x, self.y, 'accuracy', cv=2
         ).mean()
+
+        if val == 1:
+            return 0
 
         return val
 
@@ -76,19 +73,17 @@ class ExtraARG():
         self.etc_0 = BayesianOptimization(
             self.etc_ccv,
             {
-                'n_estimators': (100, 1000),
-                'max_features': (0.1, 0.5),
+                'n_estimators': (800, 1200),
                 'top_args': (self.min_importance, self.max_importance)
             }
         )
         self.etc_0.maximize(n_iter=self.epochs, **self.gp_params)
-
+        print(self.etc_0.res)
         print('performing extra trees classifier ...')
         self.forest = ETC(
             n_estimators=int(
-                self.etc_0.res['max']['max_params']['n_estimators']),
-            max_features=min(
-                self.etc_0.res['max']['max_params']['max_features'], 0.999),
+                self.etc_0.res['max']['max_params']['n_estimators']
+            ),
             random_state=0
         )
         self.forest.fit(self.X, self.y)
@@ -131,7 +126,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option('--min-reads', default=1, help='minimum number of reads on each ARG (default 1)')
 @click.option('--epochs', default=20, help='number of iterations the optimization algorithm run (default 10)')
 @click.option('--max-importance', default=0.01, help='maximum importance for search space (default 0.01)')
-@click.option('--min-importance', default=1e-5, help='minimum importance for search space (default 1e-6)')
+@click.option('--min-importance', default=1e-5, help='minimum importance for search space (default 1e-5)')
 # @click.option('--optimize', default=False, help='minimum number of reads on each ARG (default 1)')
 def process(input_file='', output_file='', min_reads='', epochs=10, max_importance=0.01, min_importance=1e-5):
     """
