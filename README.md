@@ -17,8 +17,8 @@ Run a test:
 ### Requirements
 
         python 2.7 or python 3.x
-        git
-        pip
+        git (https://git-scm.com/download/win)
+        pip (https://pip.pypa.io/en/stable/installing/)
 
 ## Instalation
 
@@ -35,6 +35,7 @@ Run a test
         python -m extrarg --input-file ../test/PIRE_INFLUENT.xlsx --output-file ../test/temp
 
 ## Usage
+Before using ExtrARG, please make sure the format of your input contains the required fields.
 
         extrarg --help # (macOS/linux)
         python -m extrarg --help # (Windows)
