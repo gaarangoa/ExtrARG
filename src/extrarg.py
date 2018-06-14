@@ -39,7 +39,7 @@ class ExtraARG():
         for i in range(0, len(Raw_data.index)):
             counter = 0
             for j in range(0, len(Raw_data.columns)):
-                if (Raw_data.iloc[i][j] < self.min_reads):
+                if (Raw_data.iloc[i][j] <= self.min_reads):
                     counter = counter+1
             if (counter != len(Raw_data.columns)):
                 listR.append(Raw_data.index[i])
