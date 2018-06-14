@@ -50,7 +50,7 @@ Run a test
         --output-file TEXT      output file where to store the results
         --min-reads INTEGER     minimum number of reads on each ARG (default 1)
         --epochs INTEGER        number of iterations the optimization algorithm run
-                                (default 10)
+                                (default 50)
         --max-importance FLOAT  maximum importance for search space (default 0.01)
         --min-importance FLOAT  minimum importance for search space (default 1e-5)
         -h, --help              Show this message and exit.
