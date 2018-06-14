@@ -2,9 +2,17 @@ import numpy as np
 import pandas as pd
 from sklearn.feature_selection import SelectFromModel
 from sklearn.ensemble import ExtraTreesClassifier as ETC
-from sklearn.cross_validation import cross_val_score
+from sklearn.model_selection import cross_validate
+from sklearn.metrics import fbeta_score, make_scorer
+from sklearn.metrics import confusion_matrix
 from bayes_opt import BayesianOptimization
 import click
+from sklearn.metrics import average_precision_score
+from sklearn.metrics import precision_recall_curve
+import json
+
+from sklearn.cluster import AffinityPropagation
+from sklearn import metrics
 
 
 class ExtraARG():
@@ -18,6 +26,7 @@ class ExtraARG():
         self.X = []
         self.y = []
         self.z = []
+        self.cumulative_objective_function = []
 
     def load_data(self):
         Raw_data2 = pd.read_excel(self.input_file, sheet_name='Raw')
@@ -43,8 +52,34 @@ class ExtraARG():
         Map.index = Map.pop('Name')
         Map = Map.loc[Raw_data2.index]
         self.z = Map.Samples
-        self.y = Map.Label
+        self._y = Map.Label
+        self.map_y = {i: ix for ix, i in enumerate(list(set(self._y)))}
+        self.y = np.array([self.map_y[i] for i in self._y])
         self.X = Raw_data2
+
+    def loss_function(self, y_test, y_score):
+        cm = confusion_matrix(y_test, y_score)
+        precisions = []
+        for ix, row in enumerate(cm):
+            try:
+                precisions.append(float(row[ix]) / sum(row))
+            except:
+                precisions.append(0)
+        precisions = np.array(precisions)
+
+        recalls = []
+        for ix, row in enumerate(np.transpose(cm)):
+            try:
+                recalls.append(float(row[ix]) / sum(row))
+            except:
+                recalls.append(0)
+
+        recalls = np.array(recalls)
+        return 2*precisions.mean()*recalls.mean()/(sum(precisions)+sum(recalls))
+
+    def loss_function_2(self, y_test, y_score):
+        # print(y_test, y_score)
+        return metrics.adjusted_rand_score(y_test, y_score)
 
     def etc_ccv(self, n_estimators, top_args):
         _transition_model = ETC(n_estimators=int(n_estimators), random_state=0)
@@ -58,27 +93,48 @@ class ExtraARG():
         if _transition_model_x.shape[1] == 0:
             return 0
 
-        val = cross_val_score(
+        # score = make_scorer(self.loss_function_2, greater_is_better=True)
+        # af = AffinityPropagation().fit(self.X)
+        # labels = af.labels_
+        # val = metrics.metrics.adjusted_mutual_info_score(self.y, )
+        # val = cross_validate(
+        # AffinityPropagation(),
+        # X=_transition_model_x,
+        # y=self.y,
+        # scoring=score,
+        # cv=2
+        # )
+
+        score = make_scorer(self.loss_function_2, greater_is_better=True)
+        val = cross_validate(
             ETC(n_estimators=int(n_estimators), random_state=0),
-            _transition_model_x, self.y, 'accuracy', cv=2
-        ).mean()
+            X=_transition_model_x,
+            y=self.y,
+            scoring=score,
+            cv=2
+        )
 
-        if val == 1:
-            return 0
+        self.cumulative_objective_function.append({
+            "score": val['test_score'].mean(),
+            "n_estimators": n_estimators,
+            "top_args": _transition_model_x.shape[1],
+            "importance_cutoff": top_args
+        })
 
-        return val
+        return val['test_score'].mean()
 
     def optimize(self):
         self.gp_params = {"alpha": 1e-5}
         self.etc_0 = BayesianOptimization(
             self.etc_ccv,
             {
-                'n_estimators': (800, 1200),
+                'n_estimators': (1000, 1000),
                 'top_args': (self.min_importance, self.max_importance)
             }
         )
+
         self.etc_0.maximize(n_iter=self.epochs, **self.gp_params)
-        print(self.etc_0.res)
+
         print('performing extra trees classifier ...')
         self.forest = ETC(
             n_estimators=int(
@@ -86,13 +142,21 @@ class ExtraARG():
             ),
             random_state=0
         )
+
         self.forest.fit(self.X, self.y)
         self._selected_features_model = SelectFromModel(
             self.forest, prefit=True, threshold=self.etc_0.res['max']['max_params']['top_args']
         )
 
+        self.parameters = pd.DataFrame({
+            "score": [i['score'] for i in self.cumulative_objective_function],
+            "n_estimators": [i['n_estimators'] for i in self.cumulative_objective_function],
+            "top_args": [i['top_args'] for i in self.cumulative_objective_function],
+            "importance_cutoff": [i['importance_cutoff'] for i in self.cumulative_objective_function]
+        })
+        # print(json.dumps(self.cumulative_objective_function, indent=4))
+
         self.x_t_selected = self._selected_features_model.transform(self.X)
-        # self.forest.fit(self.x_t_selected, self.y)
 
         self.x_selected = pd.DataFrame(
             data=self.x_t_selected,
@@ -113,6 +177,7 @@ class ExtraARG():
         self.X.to_excel(writer, 'cleaned_raw_input')
         self.x_selected.to_excel(writer, 'discriminatory_args')
         self.importances.to_excel(writer, 'ARGs_importance')
+        self.parameters.to_excel(writer, 'ARGs_importance_cutoffs')
         writer.save()
 
 
