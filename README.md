@@ -33,3 +33,24 @@ Check the instalation by typing:
 Run a test
 
         python -m extrarg --input-file ../test/PIRE_INFLUENT.xlsx --output-file ../test/temp
+
+## Usage
+
+        extrarg --help # (macOS/linux)
+        python -m extrarg --help # (Windows)
+        Usage: extrarg [OPTIONS]
+
+        This program subtract the top N (50 default) discriminatory antibiotic
+        resistance genes from a set of metagenomics samples. Hyperparameters of
+        the supervised machine learning algorithm (extra tree classifier) are
+        automatically tuned using the bayesian optimization.
+
+        Options:
+        --input-file TEXT       input excel file
+        --output-file TEXT      output file where to store the results
+        --min-reads INTEGER     minimum number of reads on each ARG (default 1)
+        --epochs INTEGER        number of iterations the optimization algorithm run
+                                (default 10)
+        --max-importance FLOAT  maximum importance for search space (default 0.01)
+        --min-importance FLOAT  minimum importance for search space (default 1e-5)
+        -h, --help              Show this message and exit.
